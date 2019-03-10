@@ -131,12 +131,16 @@ void selectDeviceMode(enum DeviceType mode)
 				/* fallthrough */
 
 			case PAD_8BUTTONS:
-				usbConfig(&usbHidReportDescriptorPad8,
-					sizeof(usbHidReportDescriptorPad8));
+				usbConfig(usbJoystickDeviceId,
+						"SNES Controller",
+						&usbHidReportDescriptorPad8,
+						sizeof(usbHidReportDescriptorPad8));
 				break;
 
 			case PAD_10BUTTONS:
-				usbConfig(&usbHidReportDescriptorPad10,
+				usbConfig(usbJoystickDeviceId,
+						"SNES Controller",
+						&usbHidReportDescriptorPad10,
 					sizeof(usbHidReportDescriptorPad10));
 				break;
 		}
