@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-static uint8_t usbHidReportDescriptorPad4[] = {
+static const uint8_t usbHidReportDescriptorPad4[] = {
 	0x05, 0x01,     // USAGE_PAGE (Generic Desktop)
 	0x09, 0x05,     // USAGE (Game Pad)
 	0xa1, 0x01,     // COLLECTION (Application)
