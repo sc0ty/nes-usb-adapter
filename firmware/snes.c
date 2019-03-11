@@ -1,3 +1,5 @@
+/* Super NES Controller USB adapter */
+
 #include <avr/eeprom.h>
 
 #include "usbdrv.h"
@@ -15,6 +17,24 @@ enum DeviceType
 };
 
 
+struct PadState
+{
+	uint8_t b;
+	uint8_t y;
+	uint8_t select;
+	uint8_t start;
+	uint8_t up;
+	uint8_t down;
+	uint8_t left;
+	uint8_t right;
+	uint8_t a;
+	uint8_t x;
+	uint8_t l;
+	uint8_t r;
+};
+
+
+struct PadState padState;
 enum DeviceType selectedMode = PAD_NONE;
 uint8_t swapAB = 0;
 uint8_t swapXY = 0;
@@ -26,16 +46,14 @@ static EEMEM uint8_t swapXYEprom;
 static EEMEM uint8_t swapTriggersEprom;
 
 
-static inline struct Pad8State readPadState();
 static void selectDeviceMode(enum DeviceType device);
-static inline void configDevice(struct Pad8State padState);
+static inline void configDevice();
+static void sendPad8Report();
+static void sendPad10Report();
 
 
 int main(void)
 {
-	struct Pad8State padState;
-	struct Pad10State pad10State;
-
 	swapAB = eeprom_read_byte(&swapABEprom) == 1;
 	swapXY = eeprom_read_byte(&swapXYEprom) == 1;
 	swapTriggers = eeprom_read_byte(&swapTriggersEprom) == 1;
@@ -50,50 +68,20 @@ int main(void)
 
 		if (usbInterruptIsReady())
 		{
-			padState = readPadState();
+			padReadData((uint8_t*) &padState, sizeof(padState));
 
 			if (padState.select && padState.start)
 				configDevice(padState);
-
-			if (swapAB)
-				padState = pad8SwapAB(padState);
-
-			if (swapXY)
-				padState = pad8SwapXY(padState);
 
 			switch (selectedMode)
 			{
 				default:
 				case PAD_8BUTTONS:
-					usbSetInterrupt((uchar*) &padState, sizeof(padState));
+					sendPad8Report();
 					break;
 
 				case PAD_10BUTTONS:
-					pad10State.axisX = padState.axisX;
-					pad10State.axisY = padState.axisY;
-					pad10State.a = padState.a;
-					pad10State.b = padState.b;
-					pad10State.x = padState.x;
-					pad10State.y = padState.y;
-
-					if (swapTriggers)
-					{
-						pad10State.lShoulder = 0;
-						pad10State.rShoulder = 0;
-						pad10State.lTrigger = padState.l;
-						pad10State.rTrigger = padState.r;
-					}
-					else
-					{
-						pad10State.lShoulder = padState.l;
-						pad10State.rShoulder = padState.r;
-						pad10State.lTrigger = 0;
-						pad10State.rTrigger = 0;
-					}
-
-					pad10State.select = padState.select;
-					pad10State.start = padState.start;
-					usbSetInterrupt((uchar*) &pad10State, sizeof(pad10State));
+					sendPad10Report();
 					break;
 			}
 		}
@@ -101,27 +89,61 @@ int main(void)
 }
 
 
-struct Pad8State readPadState()
+void sendPad8Report()
 {
-	struct Pad8State state;
+	static struct Pad8Report report;
 
-	padLatchData();
-	state.b = padReadBit();
-	state.y = padReadBit();
-	state.select = padReadBit();
-	state.start = padReadBit();
-	state.axisY = padReadAxis();
-	state.axisX = padReadAxis();
-	state.a = padReadBit();
-	state.x = padReadBit();
-	state.l = padReadBit();
-	state.r = padReadBit();
-	return state;
+	report.axisX = 1 - padState.left + padState.right;
+	report.axisY = 1 - padState.up + padState.down;
+	report.a = !swapAB ? padState.a : padState.b;
+	report.b = !swapAB ? padState.b : padState.a;
+	report.x = !swapXY ? padState.x : padState.y;
+	report.y = !swapXY ? padState.y : padState.x;
+	report.l = padState.l;
+	report.r = padState.r;
+	report.select = padState.select;
+	report.start = padState.start;
+
+	usbSetInterrupt((uchar*) &report, sizeof(report));
+}
+
+
+void sendPad10Report()
+{
+	static struct Pad10Report report;
+
+	report.axisX = 1 - padState.left + padState.right;
+	report.axisY = 1 - padState.up + padState.down;
+	report.a = !swapAB ? padState.a : padState.b;
+	report.b = !swapAB ? padState.b : padState.a;
+	report.x = !swapXY ? padState.x : padState.y;
+	report.y = !swapXY ? padState.y : padState.x;
+	report.select = padState.select;
+	report.start = padState.start;
+
+	if (swapTriggers)
+	{
+		report.lShoulder = 0;
+		report.rShoulder = 0;
+		report.lTrigger = padState.l;
+		report.rTrigger = padState.r;
+	}
+	else
+	{
+		report.lShoulder = padState.l;
+		report.rShoulder = padState.r;
+		report.lTrigger = 0;
+		report.rTrigger = 0;
+	}
+
+	usbSetInterrupt((uchar*) &report, sizeof(report));
 }
 
 
 void selectDeviceMode(enum DeviceType mode)
 {
+	static const char deviceName[] = "SNES Controller";
+
 	if (mode != selectedMode || selectedMode == PAD_NONE)
 	{
 		switch (mode)
@@ -132,16 +154,16 @@ void selectDeviceMode(enum DeviceType mode)
 
 			case PAD_8BUTTONS:
 				usbConfig(usbJoystickDeviceId,
-						"SNES Controller",
+						deviceName,
 						&usbHidReportDescriptorPad8,
 						sizeof(usbHidReportDescriptorPad8));
 				break;
 
 			case PAD_10BUTTONS:
 				usbConfig(usbJoystickDeviceId,
-						"SNES Controller",
+						deviceName,
 						&usbHidReportDescriptorPad10,
-					sizeof(usbHidReportDescriptorPad10));
+						sizeof(usbHidReportDescriptorPad10));
 				break;
 		}
 
@@ -151,7 +173,7 @@ void selectDeviceMode(enum DeviceType mode)
 }
 
 
-void configDevice(struct Pad8State padState)
+void configDevice()
 {
 	if (padState.a ^ padState.b)
 	{
@@ -171,13 +193,8 @@ void configDevice(struct Pad8State padState)
 		eeprom_write_byte(&swapTriggersEprom, swapTriggers);
 	}
 
-	if (padState.axisY == 0)	// up
-	{
+	if (padState.up)
 		selectDeviceMode(PAD_8BUTTONS);
-	}
-
-	if (padState.axisY == 2)	// down
-	{
+	else if (padState.down)
 		selectDeviceMode(PAD_10BUTTONS);
-	}
 }

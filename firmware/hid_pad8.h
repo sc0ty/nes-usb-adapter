@@ -1,3 +1,5 @@
+/* USB HID GamePad definition - 2 axis, 8 buttons */
+
 #ifndef __HID_PAD8_H__
 #define __HID_PAD8_H__
 
@@ -31,7 +33,7 @@ static uint8_t usbHidReportDescriptorPad8[] = {
 	0xc0            // END_COLLECTION
 };
 
-struct Pad8State
+struct Pad8Report
 {
 	uint16_t axisX : 2;
 	uint16_t axisY : 2;
@@ -45,22 +47,5 @@ struct Pad8State
 	uint16_t start : 1;
 	uint16_t _padding : 4;
 };
-
-
-static inline struct Pad8State pad8SwapAB(struct Pad8State state)
-{
-	uint8_t tmp = state.a;
-	state.a = state.b;
-	state.b = tmp;
-	return state;
-}
-
-static inline struct Pad8State pad8SwapXY(struct Pad8State state)
-{
-	uint8_t tmp = state.x;
-	state.x = state.y;
-	state.y = tmp;
-	return state;
-}
 
 #endif

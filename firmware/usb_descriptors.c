@@ -1,3 +1,5 @@
+/* USB Descriptors and configuration */
+
 #include "usb_descriptors.h"
 #include "usbdrv.h"
 #include <avr/interrupt.h>
@@ -42,7 +44,7 @@ struct UsbDescriptors usbDescriptors = {
 		.bNumEndpoints          = 1,
 		.bInterfaceClass        = USB_CFG_INTERFACE_CLASS,
 		.bInterfaceSubClass     = USB_CFG_INTERFACE_SUBCLASS,
-		.bInterfaceProtocol     = USB_CFG_INTERFACE_PROTOCOL,
+		.bInterfaceProtocol     = 1,
 		.iInterface             = 0,
 	},
 
@@ -67,18 +69,13 @@ struct UsbDescriptors usbDescriptors = {
 	},
 };
 
-struct UsbStringDescriptor usbProductName = {
-	.bDescriptorType            = USBDESCR_STRING,
-};
-
 void *usbHidReportDescriptor = NULL;
+const char *usbProductName = NULL;
 
 
 void usbConfig(struct UsbDeviceId deviceId, const char *productName,
 		void *hidDescriptor, uint16_t hidDescriptorLen)
 {
-	uint8_t i;
-
 	cli();
 	usbDeviceDisconnect();
 	_delay_ms(500);
@@ -86,9 +83,7 @@ void usbConfig(struct UsbDeviceId deviceId, const char *productName,
 	usbDeviceDescriptor.idVendor  = deviceId.vendor;
 	usbDeviceDescriptor.idProduct = deviceId.product;
 
-	for (i = 0; productName[i] && i < 20; i++)
-		usbProductName.bString[i] = productName[i];
-	usbProductName.bLength = 2 * i + 2;
+	usbProductName = productName;
 
 	usbHidReportDescriptor = hidDescriptor;
 	usbDescriptors.hid.wDescriptorLength = hidDescriptorLen;
@@ -104,8 +99,24 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 	return 0;
 }
 
+static struct UsbStringDescriptor *getStringDescriptor(const char *str)
+{
+	static struct UsbStringDescriptor descriptor = {
+		.bDescriptorType            = USBDESCR_STRING,
+	};
+
+	uint8_t i;
+	for (i = 0; str[i] && i < 20; i++)
+		descriptor.bString[i] = str[i];
+
+	descriptor.bLength = 2 * i + 2;
+	return &descriptor;
+}
+
 usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 {
+	struct UsbStringDescriptor *stringDescriptor;
+
 	if (rq->bRequest == USBRQ_GET_DESCRIPTOR)
 	{
 		switch (rq->wValue.bytes[1])
@@ -131,8 +142,9 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 				{
 					case 2: // product string
 					default:
-						usbMsgPtr = (usbMsgPtr_t) &usbProductName;
-						return usbProductName.bLength;
+						stringDescriptor = getStringDescriptor(usbProductName);
+						usbMsgPtr = (usbMsgPtr_t) stringDescriptor;
+						return stringDescriptor->bLength;
 				};
 
 			default:

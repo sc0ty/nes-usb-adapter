@@ -1,3 +1,5 @@
+/* USB Descriptors and configuration */
+
 #ifndef __DESCRIPTORS_H__
 #define __DESCRIPTORS_H__
 

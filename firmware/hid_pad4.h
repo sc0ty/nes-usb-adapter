@@ -1,3 +1,5 @@
+/* USB HID GamePad definition - 2 axis, 4 buttons */
+
 #ifndef __HID_PAD4_H__
 #define __HID_PAD4_H__
 
@@ -28,7 +30,7 @@ static uint8_t usbHidReportDescriptorPad4[] = {
 	0xc0            // END_COLLECTION
 };
 
-struct Pad4State
+struct Pad4Report
 {
 	uint8_t axisX : 2;
 	uint8_t axisY : 2;
@@ -37,14 +39,5 @@ struct Pad4State
 	uint8_t select : 1;
 	uint8_t start : 1;
 };
-
-
-static inline struct Pad4State pad4SwapAB(struct Pad4State state)
-{
-	uint8_t tmp = state.a;
-	state.a = state.b;
-	state.b = tmp;
-	return state;
-}
 
 #endif

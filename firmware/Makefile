@@ -31,6 +31,7 @@ TARGETS = \
 		  snes.hex \
 
 SOURCES = \
+		  serial_pad.c \
 		  usb_descriptors.c \
 		  usbdrv/usbdrv.c \
 		  usbdrv/usbdrvasm.S \

@@ -1,3 +1,5 @@
+/* USB HID GamePad definition - 2 axis, 10 buttons */
+
 #ifndef __HID_PAD10_H__
 #define __HID_PAD10_H__
 
@@ -31,7 +33,7 @@ static uint8_t usbHidReportDescriptorPad10[] = {
 	0xc0            // END_COLLECTION
 };
 
-struct Pad10State
+struct Pad10Report
 {
 	uint16_t axisX : 2;
 	uint16_t axisY : 2;
