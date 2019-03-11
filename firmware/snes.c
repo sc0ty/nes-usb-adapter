@@ -1,18 +1,21 @@
 /* Super NES Controller USB adapter */
 
 #include <avr/eeprom.h>
+#include <string.h>
 
 #include "usbdrv.h"
 #include "serial_pad.h"
 #include "usb_descriptors.h"
 #include "hid_pad8.h"
 #include "hid_pad10.h"
+#include "hid_keyboard.h"
 
 
 enum DeviceType
 {
 	PAD_8BUTTONS,
 	PAD_10BUTTONS,
+	PAD_KEYBOARD,
 	PAD_NONE,
 };
 
@@ -47,9 +50,10 @@ static EEMEM uint8_t swapTriggersEprom;
 
 
 static void selectDeviceMode(enum DeviceType device);
-static inline void configDevice();
+static void configDevice();
 static void sendPad8Report();
 static void sendPad10Report();
+static void sendKeyboardReport();
 
 
 int main(void)
@@ -82,6 +86,10 @@ int main(void)
 
 				case PAD_10BUTTONS:
 					sendPad10Report();
+					break;
+
+				case PAD_KEYBOARD:
+					sendKeyboardReport();
 					break;
 			}
 		}
@@ -140,6 +148,35 @@ void sendPad10Report()
 }
 
 
+void sendKeyboardReport()
+{
+	static const struct PadState codes = {
+		.x      = KEY_M,
+		.y      = KEY_N,
+		.l      = KEY_J,
+		.r      = KEY_K,
+		.select = KEY_ESC,
+		.start  = KEY_ENTER,
+		.up     = KEY_UP,
+		.down   = KEY_DOWN,
+		.left   = KEY_LEFT,
+		.right  = KEY_RIGHT,
+	};
+
+	static struct KeyboardReport report;
+
+	keyboardSetKeyCodes(&report,
+			(uint8_t*) &codes,
+			(uint8_t*) &padState,
+			sizeof(padState));
+
+	report.lCtrl  = !swapAB ? padState.a : padState.b;
+	report.lShift = !swapAB ? padState.b : padState.a;
+
+	usbSetInterrupt((uchar*) &report, sizeof(report));
+}
+
+
 void selectDeviceMode(enum DeviceType mode)
 {
 	static const char deviceName[] = "SNES Controller";
@@ -153,17 +190,25 @@ void selectDeviceMode(enum DeviceType mode)
 				/* fallthrough */
 
 			case PAD_8BUTTONS:
-				usbConfig(usbJoystickDeviceId,
+				usbConfig(USB_DEVICE_JOYSTICK,
 						deviceName,
 						&usbHidReportDescriptorPad8,
 						sizeof(usbHidReportDescriptorPad8));
 				break;
 
 			case PAD_10BUTTONS:
-				usbConfig(usbJoystickDeviceId,
+				usbConfig(USB_DEVICE_JOYSTICK,
 						deviceName,
 						&usbHidReportDescriptorPad10,
 						sizeof(usbHidReportDescriptorPad10));
+				break;
+
+			case PAD_KEYBOARD:
+				usbConfig(USB_DEVICE_KEYBOARD,
+						deviceName,
+						&usbHidReportDescriptorKeyboard,
+						sizeof(usbHidReportDescriptorKeyboard));
+
 				break;
 		}
 
@@ -197,4 +242,6 @@ void configDevice()
 		selectDeviceMode(PAD_8BUTTONS);
 	else if (padState.down)
 		selectDeviceMode(PAD_10BUTTONS);
+	else if (padState.left)
+		selectDeviceMode(PAD_KEYBOARD);
 }

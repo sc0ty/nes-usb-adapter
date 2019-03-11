@@ -43,6 +43,7 @@ HEADERS = \
 		  hid_pad4.h \
 		  hid_pad8.h \
 		  hid_pad10.h \
+		  hid_keyboard.h \
 		  usbconfig.h \
 
 
@@ -73,7 +74,6 @@ $(ELFS):
 
 %.elf: %.c.o $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^
-	#avr-size -A $@
 
 %.hex: %.elf
 	$(OBJCPY) -O ihex -R .eeprom $< $@

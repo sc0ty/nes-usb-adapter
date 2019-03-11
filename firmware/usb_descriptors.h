@@ -85,24 +85,13 @@ struct UsbStringDescriptor
 	uint16_t bString[20];
 };
 
-struct UsbDeviceId
+enum UsbDeviceMode
 {
-	uint16_t vendor;
-	uint16_t product;
+	USB_DEVICE_JOYSTICK,
+	USB_DEVICE_KEYBOARD,
 };
 
-static const struct UsbDeviceId usbJoystickDeviceId = {
-	.vendor  = 0x16c0,
-	.product = 0x27dc,
-};
-
-static const struct UsbDeviceId usbKeyboardDeviceId = {
-	.vendor  = 0x16c0,
-	.product = 0x27db,
-};
-
-void usbConfig(
-		struct UsbDeviceId deviceId, const char *productName,
-		void *hidDescriptor, uint16_t hidDescriptorLen);
+void usbConfig(enum UsbDeviceMode mode, const char *productName,
+		const void *hidDescriptor, uint16_t hidDescriptorLen);
 
 #endif

@@ -42,9 +42,9 @@ struct UsbDescriptors usbDescriptors = {
 		.bInterfaceNumber       = 0,
 		.bAlternateSetting      = 0,
 		.bNumEndpoints          = 1,
-		.bInterfaceClass        = USB_CFG_INTERFACE_CLASS,
-		.bInterfaceSubClass     = USB_CFG_INTERFACE_SUBCLASS,
-		.bInterfaceProtocol     = 1,
+		.bInterfaceClass        = 0,
+		.bInterfaceSubClass     = 0,
+		.bInterfaceProtocol     = 0,
 		.iInterface             = 0,
 	},
 
@@ -69,22 +69,37 @@ struct UsbDescriptors usbDescriptors = {
 	},
 };
 
-void *usbHidReportDescriptor = NULL;
+const void *usbHidReportDescriptor = NULL;
 const char *usbProductName = NULL;
 
 
-void usbConfig(struct UsbDeviceId deviceId, const char *productName,
-		void *hidDescriptor, uint16_t hidDescriptorLen)
+void usbConfig(enum UsbDeviceMode mode, const char *productName,
+		const void *hidDescriptor, uint16_t hidDescriptorLen)
 {
 	cli();
 	usbDeviceDisconnect();
 	_delay_ms(500);
 
-	usbDeviceDescriptor.idVendor  = deviceId.vendor;
-	usbDeviceDescriptor.idProduct = deviceId.product;
+	switch (mode)
+	{
+		case USB_DEVICE_JOYSTICK:
+			usbDeviceDescriptor.idVendor  = 0x16c0;
+			usbDeviceDescriptor.idProduct = 0x27dc;
+			usbDescriptors.interface.bInterfaceClass = 3;
+			usbDescriptors.interface.bInterfaceSubClass = 0;
+			usbDescriptors.interface.bInterfaceProtocol = 0;
+			break;
+
+		case USB_DEVICE_KEYBOARD:
+			usbDeviceDescriptor.idVendor  = 0x16c0;
+			usbDeviceDescriptor.idProduct = 0x27db;
+			usbDescriptors.interface.bInterfaceClass = 3;
+			usbDescriptors.interface.bInterfaceSubClass = 1;
+			usbDescriptors.interface.bInterfaceProtocol = 1;
+			break;
+	}
 
 	usbProductName = productName;
-
 	usbHidReportDescriptor = hidDescriptor;
 	usbDescriptors.hid.wDescriptorLength = hidDescriptorLen;
 
