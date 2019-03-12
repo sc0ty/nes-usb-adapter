@@ -58,8 +58,7 @@ struct UsbDescriptors usbDescriptors = {
 		.wDescriptorLength      = 0,
 	},
 
-	.endpoint =
-	{
+	.endpoint = {
 		.bLength                = sizeof(struct UsbEndpointDescriptor),
 		.bDescriptorType        = USBDESCR_ENDPOINT,
 		.bEndpointAddress       = 0x81,
@@ -85,7 +84,7 @@ void usbConfig(enum UsbDeviceMode mode, const char *productName,
 		case USB_DEVICE_JOYSTICK:
 			usbDeviceDescriptor.idVendor  = 0x16c0;
 			usbDeviceDescriptor.idProduct = 0x27dc;
-			usbDescriptors.interface.bInterfaceClass = 3;
+			usbDescriptors.interface.bInterfaceClass = 3;    // HID device
 			usbDescriptors.interface.bInterfaceSubClass = 0;
 			usbDescriptors.interface.bInterfaceProtocol = 0;
 			break;
@@ -93,9 +92,9 @@ void usbConfig(enum UsbDeviceMode mode, const char *productName,
 		case USB_DEVICE_KEYBOARD:
 			usbDeviceDescriptor.idVendor  = 0x16c0;
 			usbDeviceDescriptor.idProduct = 0x27db;
-			usbDescriptors.interface.bInterfaceClass = 3;
-			usbDescriptors.interface.bInterfaceSubClass = 1;
-			usbDescriptors.interface.bInterfaceProtocol = 1;
+			usbDescriptors.interface.bInterfaceClass = 3;    // HID device
+			usbDescriptors.interface.bInterfaceSubClass = 0; // no boot protocol
+			usbDescriptors.interface.bInterfaceProtocol = 1; // keyboard
 			break;
 	}
 
@@ -117,11 +116,11 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 static struct UsbStringDescriptor *getStringDescriptor(const char *str)
 {
 	static struct UsbStringDescriptor descriptor = {
-		.bDescriptorType            = USBDESCR_STRING,
+		.bDescriptorType = USBDESCR_STRING,
 	};
 
 	uint8_t i;
-	for (i = 0; str[i] && i < 20; i++)
+	for (i = 0; str[i] && i < USB_STRING_DESCRIPTOR_MAX_LEN; i++)
 		descriptor.bString[i] = str[i];
 
 	descriptor.bLength = 2 * i + 2;

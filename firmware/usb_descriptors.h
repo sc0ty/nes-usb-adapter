@@ -6,6 +6,9 @@
 #include <stdint.h>
 
 
+#define USB_STRING_DESCRIPTOR_MAX_LEN 20
+
+
 struct UsbDeviceDescriptor
 {
 	uint8_t bLength;
@@ -82,7 +85,7 @@ struct UsbStringDescriptor
 {
 	uint8_t bLength;
 	uint8_t bDescriptorType;
-	uint16_t bString[20];
+	uint16_t bString[USB_STRING_DESCRIPTOR_MAX_LEN];
 };
 
 enum UsbDeviceMode
