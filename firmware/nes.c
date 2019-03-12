@@ -59,11 +59,10 @@ int main(void)
 	while (1)
 	{
 		usbPoll();
+		padReadData((uint8_t*) &padState, sizeof(padState));
 
 		if (usbInterruptIsReady())
 		{
-			padReadData((uint8_t*) &padState, sizeof(padState));
-
 			switch (selectedMode)
 			{
 				default:
@@ -79,10 +78,10 @@ int main(void)
 					sendKeyboardReport();
 					break;
 			}
-
-			if (padState.select && padState.start)
-				configDevice();
 		}
+
+		if (padState.select && padState.start)
+			configDevice();
 	}
 }
 
