@@ -8,6 +8,7 @@
 #include "hid_pad8.h"
 #include "hid_pad10.h"
 #include "hid_keyboard.h"
+#include "utils.h"
 
 
 enum DeviceType
@@ -72,6 +73,15 @@ int main(void)
 		usbPoll();
 		padReadData((uint8_t*) &padState, sizeof(padState));
 
+		if (padState.select && padState.start)
+			configDevice();
+
+		if (swapAB)
+			swap(&padState.a, &padState.b);
+
+		if (swapXY)
+			swap(&padState.x, &padState.y);
+
 		if (usbInterruptIsReady())
 		{
 			switch (selectedMode)
@@ -83,9 +93,6 @@ int main(void)
 				case PAD_KEYBOARD2: sendKeyboard2Report(); break;
 			}
 		}
-
-		if (padState.select && padState.start)
-			configDevice();
 	}
 }
 
@@ -96,10 +103,10 @@ void sendPad8Report()
 
 	report.axisX = 1 - padState.left + padState.right;
 	report.axisY = 1 - padState.up + padState.down;
-	report.a = !swapAB ? padState.a : padState.b;
-	report.b = !swapAB ? padState.b : padState.a;
-	report.x = !swapXY ? padState.x : padState.y;
-	report.y = !swapXY ? padState.y : padState.x;
+	report.a = padState.a;
+	report.b = padState.b;
+	report.x = padState.x;
+	report.y = padState.y;
 	report.l = padState.l;
 	report.r = padState.r;
 	report.select = padState.select;
@@ -115,10 +122,10 @@ void sendPad10Report()
 
 	report.axisX = 1 - padState.left + padState.right;
 	report.axisY = 1 - padState.up + padState.down;
-	report.a = !swapAB ? padState.a : padState.b;
-	report.b = !swapAB ? padState.b : padState.a;
-	report.x = !swapXY ? padState.x : padState.y;
-	report.y = !swapXY ? padState.y : padState.x;
+	report.a = padState.a;
+	report.b = padState.b;
+	report.x = padState.x;
+	report.y = padState.y;
 	report.select = padState.select;
 	report.start = padState.start;
 

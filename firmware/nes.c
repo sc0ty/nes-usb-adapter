@@ -8,6 +8,7 @@
 #include "hid_pad4.h"
 #include "hid_pad10.h"
 #include "hid_keyboard.h"
+#include "utils.h"
 
 
 enum DeviceType
@@ -62,6 +63,12 @@ int main(void)
 		usbPoll();
 		padReadData((uint8_t*) &padState, sizeof(padState));
 
+		if (padState.select && padState.start)
+			configDevice();
+
+		if (swapAB)
+			swap(&padState.a, &padState.b);
+
 		if (usbInterruptIsReady())
 		{
 			switch (selectedMode)
@@ -73,9 +80,6 @@ int main(void)
 				case PAD_KEYBOARD2: sendKeyboard2Report(); break;
 			}
 		}
-
-		if (padState.select && padState.start)
-			configDevice();
 	}
 }
 
@@ -86,8 +90,8 @@ void sendPad4Report()
 
 	report.axisX = 1 - padState.left + padState.right;
 	report.axisY = 1 - padState.up + padState.down;
-	report.a = !swapAB ? padState.a : padState.b;
-	report.b = !swapAB ? padState.b : padState.a;
+	report.a = padState.a;
+	report.b = padState.b;
 	report.select = padState.select;
 	report.start = padState.start;
 
@@ -101,8 +105,8 @@ void sendPad10Report()
 
 	report.axisX = 1 - padState.left + padState.right;
 	report.axisY = 1 - padState.up + padState.down;
-	report.a = !swapAB ? padState.b : padState.a;
-	report.b = !swapAB ? padState.a : padState.b;
+	report.a = padState.a;
+	report.b = padState.b;
 	report.lShoulder = 0;
 	report.rShoulder = 0;
 	report.lTrigger = 0;

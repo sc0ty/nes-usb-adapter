@@ -45,6 +45,7 @@ HEADERS = \
 		  hid_pad10.h \
 		  hid_keyboard.h \
 		  usbconfig.h \
+		  utils.h \
 
 
 ELFS     = $(TARGETS:.hex=.elf)
