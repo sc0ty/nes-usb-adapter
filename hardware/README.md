@@ -9,13 +9,13 @@ DigiSpark pin | ATtiny pin  | Controller pin
   P1          | PB1 / pin 6 | LATCH / pin 3
   P2          | PB2 / pin 7 | DATA / pin 4
 
-This is defined in [firmware/serial_pad.c](blob/master/firmware/serial_pad.c)
+This is defined in [firmware/serial_pad.c](../firmware/serial_pad.c)
 
 ## Controller pinout
-![NES/SNES controller pinout](hardware/nes.png)
+![NES/SNES controller pinout](nes.jpg)
 
 ## DigiSpark schematic
-![DigiSpark schematic](hardware/digispark.png)
+![DigiSpark schematic](digispark.png)
 
 If you are going to build one yourself, V1 regulator is not needed - we are powered by the USB port.
  
