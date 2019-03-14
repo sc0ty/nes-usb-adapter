@@ -40,16 +40,21 @@ static const uint8_t usbHidReportDescriptorKeyboard[] = {
 
 struct KeyboardReport
 {
-	uint8_t lCtrl : 1;
-	uint8_t lShift : 1;
-	uint8_t lAlt : 1;
-	uint8_t lGui : 1;
-	uint8_t rCtrl : 1;
-	uint8_t rShift : 1;
-	uint8_t rAlt : 1;
-	uint8_t rGui : 1;
+	uint8_t modifiers;
 	uint8_t reserved;
 	uint8_t keycodes[6];
+};
+
+enum KeyboardModifiers
+{
+	KEY_MOD_LCTRL  = 1 << 0,
+	KEY_MOD_LSHIFT = 1 << 1,
+	KEY_MOD_LALT   = 1 << 2,
+	KEY_MOD_LGUI   = 1 << 3,
+	KEY_MOD_RCTRL  = 1 << 4,
+	KEY_MOD_RSHIFT = 1 << 5,
+	KEY_MOD_RALT   = 1 << 6,
+	KEY_MOD_RGUI   = 1 << 7,
 };
 
 enum KeyboardCodes
@@ -74,22 +79,28 @@ enum KeyboardCodes
 };
 
 
-static inline void keyboardSetKeyCodes(
+static inline void keyboardMakeReport(
 		struct KeyboardReport *report,
 		const uint8_t *codes,
+		const uint8_t *modifiers,
 		const uint8_t *mask,
 		uint8_t len)
 {
 	uint8_t i;
 	uint8_t reportNo = 0;
 
+	report->modifiers = 0;
+	report->reserved = 0;
+
 	for (i = 0; i < len; i++)
 	{
-		if (mask[i] && codes[i])
+		if (mask[i])
 		{
-			report->keycodes[reportNo++] = codes[i];
-			if (reportNo >= sizeof(report->keycodes))
-				return;
+			if (codes[i] && reportNo < sizeof(report->keycodes))
+				report->keycodes[reportNo++] = codes[i];
+
+			if (modifiers[i])
+				report->modifiers |= modifiers[i];
 		}
 	}
 

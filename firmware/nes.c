@@ -1,7 +1,6 @@
 /* NES Controller USB adapter */
 
 #include <avr/eeprom.h>
-#include <string.h>
 
 #include "usbdrv.h"
 #include "serial_pad.h"
@@ -15,7 +14,8 @@ enum DeviceType
 {
 	PAD_4BUTTONS,
 	PAD_10BUTTONS,
-	PAD_KEYBOARD,
+	PAD_KEYBOARD1,
+	PAD_KEYBOARD2,
 	PAD_NONE,
 };
 
@@ -45,7 +45,8 @@ static void selectDeviceMode(enum DeviceType device);
 static void configDevice();
 static void sendPad4Report();
 static void sendPad10Report();
-static void sendKeyboardReport();
+static void sendKeyboard1Report();
+static void sendKeyboard2Report();
 
 
 int main(void)
@@ -66,17 +67,10 @@ int main(void)
 			switch (selectedMode)
 			{
 				default:
-				case PAD_4BUTTONS:
-					sendPad4Report();
-					break;
-
-				case PAD_10BUTTONS:
-					sendPad10Report();
-					break;
-
-				case PAD_KEYBOARD:
-					sendKeyboardReport();
-					break;
+				case PAD_4BUTTONS:  sendPad4Report(); break;
+				case PAD_10BUTTONS: sendPad10Report(); break;
+				case PAD_KEYBOARD1: sendKeyboard1Report(); break;
+				case PAD_KEYBOARD2: sendKeyboard2Report(); break;
 			}
 		}
 
@@ -122,9 +116,9 @@ void sendPad10Report()
 }
 
 
-void sendKeyboardReport()
+void sendKeyboard1Report()
 {
-	static const struct PadState codes = {
+	static const struct PadState keyboardKeyCodesMap = {
 		.select = KEY_ESC,
 		.start  = KEY_ENTER,
 		.up     = KEY_UP,
@@ -133,15 +127,46 @@ void sendKeyboardReport()
 		.right  = KEY_RIGHT
 	};
 
+	static const struct PadState keyboardKeyModifiersMap = {
+		.a      = KEY_MOD_LCTRL,
+		.b      = KEY_MOD_LSHIFT,
+	};
+
 	static struct KeyboardReport report;
 
-	keyboardSetKeyCodes(&report,
-			(uint8_t*) &codes,
+	keyboardMakeReport(&report,
+			(uint8_t*) &keyboardKeyCodesMap,
+			(uint8_t*) &keyboardKeyModifiersMap,
 			(uint8_t*) &padState,
 			sizeof(padState));
 
-	report.lCtrl  = !swapAB ? padState.a : padState.b;
-	report.lShift = !swapAB ? padState.b : padState.a;
+	usbSetInterrupt((uchar*) &report, sizeof(report));
+}
+
+
+void sendKeyboard2Report()
+{
+	static const struct PadState keyboardKeyCodesMap = {
+		.b      = KEY_UP,
+		.select = KEY_ESC,
+		.start  = KEY_ENTER,
+		.up     = KEY_UP,
+		.down   = KEY_DOWN,
+		.left   = KEY_LEFT,
+		.right  = KEY_RIGHT
+	};
+
+	static const struct PadState keyboardKeyModifiersMap = {
+		.a      = KEY_MOD_LCTRL,
+	};
+
+	static struct KeyboardReport report;
+
+	keyboardMakeReport(&report,
+			(uint8_t*) &keyboardKeyCodesMap,
+			(uint8_t*) &keyboardKeyModifiersMap,
+			(uint8_t*) &padState,
+			sizeof(padState));
 
 	usbSetInterrupt((uchar*) &report, sizeof(report));
 }
@@ -173,7 +198,8 @@ void selectDeviceMode(enum DeviceType mode)
 						sizeof(usbHidReportDescriptorPad10));
 				break;
 
-			case PAD_KEYBOARD:
+			case PAD_KEYBOARD1:
+			case PAD_KEYBOARD2:
 				usbConfig(USB_DEVICE_KEYBOARD,
 						deviceName,
 						&usbHidReportDescriptorKeyboard,
@@ -200,5 +226,7 @@ void configDevice()
 	else if (padState.down)
 		selectDeviceMode(PAD_10BUTTONS);
 	else if (padState.left)
-		selectDeviceMode(PAD_KEYBOARD);
+		selectDeviceMode(PAD_KEYBOARD1);
+	else if (padState.right)
+		selectDeviceMode(PAD_KEYBOARD2);
 }
