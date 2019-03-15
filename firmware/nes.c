@@ -1,6 +1,7 @@
 /* NES Controller USB adapter */
 
 #include <avr/eeprom.h>
+#include <string.h>
 
 #include "usbdrv.h"
 #include "serial_pad.h"
@@ -19,6 +20,8 @@ enum DeviceType
 	PAD_KEYBOARD2,
 	PAD_NONE,
 };
+
+#define DEVICE_TYPES_NO PAD_NONE
 
 
 struct PadState
@@ -39,7 +42,7 @@ enum DeviceType selectedMode = PAD_NONE;
 uint8_t swapAB = 0;
 
 static EEMEM uint8_t selectedModeEprom;
-static EEMEM uint8_t swapABEprom;
+static EEMEM uint8_t swapABEprom[DEVICE_TYPES_NO];
 
 
 static void selectDeviceMode(enum DeviceType device);
@@ -52,8 +55,6 @@ static void sendKeyboard2Report();
 
 int main(void)
 {
-	swapAB = eeprom_read_byte(&swapABEprom) == 1;
-
 	selectDeviceMode(eeprom_read_byte(&selectedModeEprom));
 	padInit();
 
@@ -64,7 +65,10 @@ int main(void)
 		padReadData((uint8_t*) &padState, sizeof(padState));
 
 		if (padState.select && padState.start)
+		{
 			configDevice();
+			memset(&padState, 0, sizeof(padState));
+		}
 
 		if (swapAB)
 			swap(&padState.a, &padState.b);
@@ -213,6 +217,8 @@ void selectDeviceMode(enum DeviceType mode)
 
 		selectedMode = mode;
 		eeprom_write_byte(&selectedModeEprom, mode);
+
+		swapAB = eeprom_read_byte(&swapABEprom[mode]) == 1;
 	}
 }
 
@@ -222,7 +228,7 @@ void configDevice()
 	if (padState.a ^ padState.b)
 	{
 		swapAB = padState.b;
-		eeprom_write_byte(&swapABEprom, swapAB);
+		eeprom_write_byte(&swapABEprom[selectedMode], swapAB);
 	}
 
 	if (padState.up)
